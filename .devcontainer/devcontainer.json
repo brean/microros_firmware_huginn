@@ -1,0 +1,12 @@
+{
+    "name": "ROS 2 Development Container",
+    "workspaceFolder": "/ws",
+    "dockerComposeFile": "../compose.yml",
+    "service": "microros_devenv",
+    "postCreateCommand": "echo 'source /ws/install/setup.bash' >> ~/.bashrc",
+    "extensions": [
+        "ms-python.debugpy",
+        "ms-python.python",
+        "ms-python.flake8"
+    ]
+}

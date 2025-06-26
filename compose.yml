@@ -1,0 +1,12 @@
+services:
+  microros_devenv:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+      args:
+        ROS_DISTRO: jazzy
+    volumes:
+      - ./README.md:/ws/src/README.md:rw
+    environment:
+      - PYTHONUNBUFFERED=1
+    command: ["/bin/sh", "-c", "sleep infinity"] 
