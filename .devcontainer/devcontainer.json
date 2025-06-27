@@ -4,9 +4,14 @@
     "dockerComposeFile": "../compose.yml",
     "service": "microros_devenv",
     "postCreateCommand": "echo 'source /ws/install/setup.bash' >> ~/.bashrc",
-    "extensions": [
-        "ms-python.debugpy",
-        "ms-python.python",
-        "ms-python.flake8"
-    ]
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "ms-python.debugpy",
+                "ms-python.python",
+                "ms-python.flake8",
+                "ms-vscode.cmake-tools"
+            ]
+        }
+    }
 }

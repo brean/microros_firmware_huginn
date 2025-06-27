@@ -11,23 +11,21 @@ RUN apt-get update \
         cmake \
         gcc-arm-none-eabi \
         libnewlib-arm-none-eabi \
-        git\
+        ssh \
+        git \
     && rm -rf /var/lib/apt/lists/*
-
-
-WORKDIR /opt
-
-# Clone PICO SDK into workspace
-RUN git clone --recurse-submodules https://github.com/raspberrypi/pico-sdk.git
-ENV PICO_SDK_PATH=/opt/pico-sdk
-
-# Clone microros for raspi-pico-sdk
-RUN git clone https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk.git
 
 
 ENV ROS_WORKSPACE=/ws
 RUN mkdir -p ${ROS_WORKSPACE}/src/
 WORKDIR ${ROS_WORKSPACE}
+
+# Clone PICO SDK into workspace
+RUN git clone --recurse-submodules https://github.com/raspberrypi/pico-sdk.git
+ENV PICO_SDK_PATH=/ws/pico-sdk
+
+# Clone microros for raspi-pico-sdk
+RUN git clone https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk.git
 
 # Clone setup for micro-ros/micro-ros-agent into src
 RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup

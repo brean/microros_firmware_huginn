@@ -7,6 +7,9 @@ services:
         ROS_DISTRO: jazzy
     volumes:
       - ./README.md:/ws/src/README.md:rw
+      - ./build:/ws/micro_ros_raspberrypi_pico_sdk/build:rw
+      - ./src/CMakeLists.txt:/ws/micro_ros_raspberrypi_pico_sdk/CMakeLists.txt:rw
+      - ./src/main.c:/ws/micro_ros_raspberrypi_pico_sdk/main.c:rw
     environment:
       - PYTHONUNBUFFERED=1
     command: ["/bin/sh", "-c", "sleep infinity"] 
