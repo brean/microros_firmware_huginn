@@ -24,13 +24,13 @@ void timer_callback(rcl_timer_t *timer, int64_t last_call_time)
 int main()
 {
     rmw_uros_set_custom_transport(
-		true,
-		NULL,
-		pico_serial_transport_open,
-		pico_serial_transport_close,
-		pico_serial_transport_write,
-		pico_serial_transport_read
-	);
+        true,
+        NULL,
+        pico_serial_transport_open,
+        pico_serial_transport_close,
+        pico_serial_transport_write,
+        pico_serial_transport_read
+    );
 
     gpio_init(LED_PIN);
     gpio_set_dir(LED_PIN, GPIO_OUT);
