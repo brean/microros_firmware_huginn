@@ -10,7 +10,8 @@
                 "ms-python.debugpy",
                 "ms-python.python",
                 "ms-python.flake8",
-                "ms-vscode.cmake-tools"
+                "ms-vscode.cmake-tools",
+                "ms-vscode.cpptools-extension-pack"
             ]
         }
     }

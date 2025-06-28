@@ -9,14 +9,20 @@ set(CMAKE_CXX_STANDARD 17)
 pico_sdk_init()
 
 link_directories(libmicroros)
+
 add_executable(pico_micro_ros_huginn
     main.c
     pico_uart_transport.c
+    src/esc_driver.c
+    src/pwm_driver.c
 )
 target_link_libraries(pico_micro_ros_huginn
     pico_stdlib
     microros
+    hardware_pwm
+    hardware_i2c
 )
+
 
 target_include_directories(pico_micro_ros_huginn PUBLIC
     libmicroros/include
