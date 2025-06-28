@@ -21,8 +21,8 @@ static rcl_subscription_t throttle_subscriber;
 static rcl_service_t calib_start_service;
 static rcl_service_t calib_finish_service;
 static std_msgs__msg__Int32 throttle_msg;
-static std_srvs__srv__trigger__Request calib_req;
-static std_srvs__srv__trigger__Response calib_res;
+static std_srvs__srv__Trigger_Request calib_req;
+static std_srvs__srv__Trigger_Response calib_res;
 
 // Private hardware control functions
 static void set_pulse_width_us(uint32_t us) {
@@ -51,7 +51,7 @@ static void esc_throttle_callback(const void *msin) {
 
 static void calib_start_callback(const void *req, void *res) {
     set_pulse_width_us(ESC_MAX_PULSE);
-    std_srvs__srv__trigger__Response * res_in = (std_srvs__srv__trigger__Response *) res;
+    std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
     res_in->message.data = "MAX throttle set. Power cycle ESC, wait for beeps, then call finish service.";
     res_in->message.size = strlen(res_in->message.data);
@@ -59,7 +59,7 @@ static void calib_start_callback(const void *req, void *res) {
 
 static void calib_finish_callback(const void *req, void *res) {
     set_pulse_width_us(ESC_MIN_PULSE);
-    std_srvs__srv__trigger__Response * res_in = (std_srvs__srv__trigger__Response *) res;
+    std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
     res_in->message.data = "MIN throttle set. ESC should be armed.";
     res_in->message.size = strlen(res_in->message.data);

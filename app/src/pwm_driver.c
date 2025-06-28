@@ -1,5 +1,6 @@
 #include "../include/pwm_driver.h"
 #include "hardware/pwm.h"
+#include "hardware/gpio.h"
 
 #include <std_msgs/msg/int32_multi_array.h>
 

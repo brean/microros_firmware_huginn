@@ -1,6 +1,8 @@
 # MicroROS firmware for huginn
 MicroROS Firmware based on FreeRTOS for RaspberryPi Pico 2 for a small robot.
 
+Based on the [MicroROS Raspberrypi Pico SDK](https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk)
+
 ## Features
  - control ackermann steering of servo with PWM
  - control brushless ESP for motor with PPM (and configure it)
@@ -18,8 +20,8 @@ cmake -DPICO_BOARD=pico2 ..
 make
 ```
 
-FIXME: Note that we overwrite the `CMakeLists.txt` and `main.c` files in the raspberrypi-pico-sdk and have our own files in the src-subfolder.
-However it is probably better to call `ros2 run micro_ros_setup build_firmware.sh` which might fix the problem with adding ros2 services
+Note that we overwrite the `CMakeLists.txt` and `main.c` files in the micro_ros_raspberrypi_pico_sdk folder and have our own files in the src-subfolder.
+You might want to fork the whole [MicroROS Raspberrypi Pico SDK](https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk) for a more complex setup.
 
 ## About the name
 Named after one of Odin's All-seeing Ravens Huginn (which translates to thought), as this little robot is just the cheapest way to implement a prototype.
