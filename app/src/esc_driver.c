@@ -3,6 +3,7 @@
 #include "hardware/gpio.h"
 #include "hardware/clocks.h"
 #include "hardware/structs/clocks.h"
+#include "pico/stdlib.h"
 
 #include <std_msgs/msg/int32.h>
 #include <std_srvs/srv/trigger.h>
@@ -11,7 +12,7 @@ const uint16_t ESC_MIN_PULSE = 3277;
 const uint16_t ESC_MAX_PULSE = 6554;
 const uint16_t PWM_ESC_FREQUENCY = 50;
 
-const bool enabled = false;
+bool enabled = false;
 
 // Private hardware variables
 static uint esc_slice;
@@ -20,8 +21,7 @@ static uint32_t esc_wrap;
 
 // Private ROS objects
 static rcl_subscription_t throttle_subscriber;
-static rcl_service_t calib_start_service;
-static rcl_service_t calib_finish_service;
+static rcl_service_t calib_service;
 static std_msgs__msg__Int32 throttle_msg;
 static std_srvs__srv__Trigger_Request calib_req;
 static std_srvs__srv__Trigger_Response calib_res;
@@ -62,13 +62,18 @@ static void calib_callback(const void *req, void *res) {
     }
     pwm_set_enabled(esc_slice, true);
     set_pulse_width_us(ESC_MAX_PULSE);
-    std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
-    // TODO: sleep 10 seconds
+    // --> Connect power to the ESC now. Wait for the initial beeps, then wait some more.
+    // sleep 10 seconds
+    sleep_ms(10000);
+
     set_pulse_width_us(ESC_MIN_PULSE);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
     res_in->message.data = "ESC should be armed.";
     res_in->message.size = strlen(res_in->message.data);
+
+    pwm_set_enabled(esc_slice, false);
+    enabled = false;
 }
 
 // Public hardware init function
@@ -90,7 +95,7 @@ void esc_driver_init_ros(
         ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
         "/pico/esc/throttle_command");
     rclc_service_init_default(
-        &calib_start_service,
+        &calib_service,
         node,
         ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, Trigger),
         "/pico/esc/calibrate");
@@ -103,8 +108,8 @@ void esc_driver_init_ros(
         ON_NEW_DATA);
     rclc_executor_add_service(
         executor,
-        &calib_start_service,
+        &calib_service,
         &calib_req,
         &calib_res,
-        &calib_start_callback);
+        &calib_callback);
 }

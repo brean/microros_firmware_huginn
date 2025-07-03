@@ -31,7 +31,6 @@ int main()
         pico_serial_transport_read
     );
 
-
     rcl_node_t node;
     rcl_allocator_t allocator;
     rclc_support_t support;
