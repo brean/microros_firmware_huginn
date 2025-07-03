@@ -80,6 +80,10 @@ static void calib_callback(const void *req, void *res) {
 void esc_driver_init(uint8_t gpio_pin) {
     gpio_set_function(gpio_pin, GPIO_FUNC_PWM);
     esc_slice = pwm_gpio_to_slice_num(gpio_pin);
+    pwm_set_enabled(esc_slice, true);
+    // send min. pulse for 2 seconds in the beginning to arm the ESC.
+    set_pulse_width_us(ESC_MIN_PULSE);
+    sleep_ms(2000);
     pwm_set_enabled(esc_slice, false);
     enabled = false;
 }
