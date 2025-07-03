@@ -7,8 +7,8 @@
 #include <std_msgs/msg/int32.h>
 #include <std_srvs/srv/trigger.h>
 
-const uint16_t ESC_MIN_PULSE = 1000;
-const uint16_t ESC_MAX_PULSE = 2000;
+const uint16_t ESC_MIN_PULSE = 3277;
+const uint16_t ESC_MAX_PULSE = 6554;
 const uint16_t PWM_ESC_FREQUENCY = 50;
 
 const bool enabled = false;
@@ -55,7 +55,7 @@ static void esc_throttle_callback(const void *msin) {
     set_throttle(msg->data);
 }
 
-static void calib_start_callback(const void *req, void *res) {
+static void calib_callback(const void *req, void *res) {
     if (!enabled) {
         pwm_set_enabled(esc_slice, true);
         enabled = true;
@@ -63,20 +63,11 @@ static void calib_start_callback(const void *req, void *res) {
     pwm_set_enabled(esc_slice, true);
     set_pulse_width_us(ESC_MAX_PULSE);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
-    res_in->success = true;
-    res_in->message.data = "MAX throttle set. Power cycle ESC, wait for beeps, then call finish service.";
-    res_in->message.size = strlen(res_in->message.data);
-}
-
-static void calib_finish_callback(const void *req, void *res) {
-    if (!enabled) {
-        pwm_set_enabled(esc_slice, true);
-        enabled = true;
-    }
+    // TODO: sleep 10 seconds
     set_pulse_width_us(ESC_MIN_PULSE);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
-    res_in->message.data = "MIN throttle set. ESC should be armed.";
+    res_in->message.data = "ESC should be armed.";
     res_in->message.size = strlen(res_in->message.data);
 }
 
@@ -84,12 +75,6 @@ static void calib_finish_callback(const void *req, void *res) {
 void esc_driver_init(uint8_t gpio_pin) {
     gpio_set_function(gpio_pin, GPIO_FUNC_PWM);
     esc_slice = pwm_gpio_to_slice_num(gpio_pin);
-    esc_chan = pwm_gpio_to_channel(gpio_pin);
-    uint f_clk_peri = frequency_count_khz(CLOCKS_FC0_SRC_VALUE_CLK_PERI);
-    uint32_t clk_div = clock_get_hz(clk_peri) / 1000000;
-    pwm_set_clkdiv_int_frac(esc_slice, clk_div, 0);
-    esc_wrap = 1000000 / PWM_ESC_FREQUENCY;
-    pwm_set_wrap(esc_slice, esc_wrap);
     pwm_set_enabled(esc_slice, false);
     enabled = false;
 }
@@ -108,12 +93,7 @@ void esc_driver_init_ros(
         &calib_start_service,
         node,
         ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, Trigger),
-        "/pico/esc/calibrate_start");
-    rclc_service_init_default(
-        &calib_finish_service,
-        node,
-        ROSIDL_GET_SRV_TYPE_SUPPORT(std_srvs, srv, Trigger),
-        "/pico/esc/calibrate_finish");
+        "/pico/esc/calibrate");
     
     rclc_executor_add_subscription(
         executor,
@@ -127,10 +107,4 @@ void esc_driver_init_ros(
         &calib_req,
         &calib_res,
         &calib_start_callback);
-    rclc_executor_add_service(
-        executor,
-        &calib_finish_service,
-        &calib_req,
-        &calib_res,
-        &calib_finish_callback);
 }
