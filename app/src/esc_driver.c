@@ -11,6 +11,8 @@ const uint16_t ESC_MIN_PULSE = 1000;
 const uint16_t ESC_MAX_PULSE = 2000;
 const uint16_t PWM_ESC_FREQUENCY = 50;
 
+const bool enabled = false;
+
 // Private hardware variables
 static uint esc_slice;
 static uint esc_chan;
@@ -40,6 +42,10 @@ static void set_throttle(uint16_t pulse_width) {
     if (pulse_width > ESC_MAX_PULSE) {
         pulse_width = ESC_MAX_PULSE;
     }
+    if (!enabled) {
+        pwm_set_enabled(esc_slice, true);
+        enabled = true;
+    }
     set_pulse_width_us(pulse_width);
 }
 
@@ -50,6 +56,11 @@ static void esc_throttle_callback(const void *msin) {
 }
 
 static void calib_start_callback(const void *req, void *res) {
+    if (!enabled) {
+        pwm_set_enabled(esc_slice, true);
+        enabled = true;
+    }
+    pwm_set_enabled(esc_slice, true);
     set_pulse_width_us(ESC_MAX_PULSE);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
@@ -58,6 +69,10 @@ static void calib_start_callback(const void *req, void *res) {
 }
 
 static void calib_finish_callback(const void *req, void *res) {
+    if (!enabled) {
+        pwm_set_enabled(esc_slice, true);
+        enabled = true;
+    }
     set_pulse_width_us(ESC_MIN_PULSE);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
@@ -75,8 +90,8 @@ void esc_driver_init(uint8_t gpio_pin) {
     pwm_set_clkdiv_int_frac(esc_slice, clk_div, 0);
     esc_wrap = 1000000 / PWM_ESC_FREQUENCY;
     pwm_set_wrap(esc_slice, esc_wrap);
-    pwm_set_enabled(esc_slice, true);
-    set_pulse_width_us(ESC_MIN_PULSE);
+    pwm_set_enabled(esc_slice, false);
+    enabled = false;
 }
 
 // Public ROS init function
