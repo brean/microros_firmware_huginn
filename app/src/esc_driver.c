@@ -5,86 +5,99 @@
 #include "hardware/structs/clocks.h"
 #include "pico/stdlib.h"
 
-#include <std_msgs/msg/int32.h>
+#include <std_msgs/msg/int16.h>
 #include <std_srvs/srv/trigger.h>
 
-const uint16_t ESC_MIN_PULSE = 3277;
-const uint16_t ESC_MAX_PULSE = 6554;
-const uint16_t PWM_ESC_FREQUENCY = 50;
+const uint PWM_FREQ = 50;       // 50 Hz, standard for most ESCs
 
-bool enabled = false;
+// Duty cycle values (16-bit) matching the Python script
+// These correspond to ~1ms and ~2ms pulse widths at 50Hz
+const uint16_t MIN_PULSE_US  = 1000; // Standard minimum throttle pulse (1ms)
+const uint16_t MAX_PULSE_US  = 2000; // Standard maximum throttle pulse (2ms)
 
-// Private hardware variables
-static uint esc_slice;
-static uint esc_chan;
-static uint32_t esc_wrap;
+static uint8_t esc_pin;
+static bool is_armed = false;
 
 // Private ROS objects
 static rcl_subscription_t throttle_subscriber;
 static rcl_service_t calib_service;
-static std_msgs__msg__Int32 throttle_msg;
+static std_msgs__msg__Int16 throttle_msg;
 static std_srvs__srv__Trigger_Request calib_req;
 static std_srvs__srv__Trigger_Response calib_res;
 
-// Private hardware control functions
-static void set_pulse_width_us(uint32_t us) {
-    if (us < ESC_MIN_PULSE) us = ESC_MIN_PULSE;
-    if (us > ESC_MAX_PULSE) us = ESC_MAX_PULSE;
-    
-    uint32_t level = (us * esc_wrap) / (1000000 / PWM_ESC_FREQUENCY);
-    pwm_set_chan_level(esc_slice, esc_chan, level);
+static void set_motor_pulse(uint16_t pulse_us) {
+    // Safety: Clamp the pulse width to the allowed range
+    if (pulse_us < MIN_PULSE_US) {
+        pulse_us = MIN_PULSE_US;
+    }
+    if (pulse_us > MAX_PULSE_US) {
+        pulse_us = MAX_PULSE_US;
+    }
+    servo_driver_set_pulse_us(esc_pin, pulse_us);
 }
 
-static void set_throttle(uint16_t pulse_width) {
-    if (pulse_width < ESC_MIN_PULSE) {
-        pulse_width = ESC_MAX_PULSE;
+static uint16_t map_speed_to_pulse(int16_t speed_percent) {
+    // First, clamp the input to the valid 0-1000 range for safety.
+    if (speed_percent < 0) {
+        speed_percent = 0;
     }
-    if (pulse_width > ESC_MAX_PULSE) {
-        pulse_width = ESC_MAX_PULSE;
+    if (speed_percent > 1000) {
+        speed_percent = 1000;
     }
-    if (!enabled) {
-        pwm_set_enabled(esc_slice, true);
-        enabled = true;
-    }
-    set_pulse_width_us(pulse_width);
+
+    // Calculate the pulse width range.
+    uint16_t pulse_range = MAX_PULSE_US - MIN_PULSE_US;
+
+    // Map the percentage to the pulse range using integer math.
+    uint16_t pulse_us = MIN_PULSE_US + (speed_percent * pulse_range) / 1000;
+
+    return pulse_us;
 }
+
 
 // Private ROS Callbacks
 static void esc_throttle_callback(const void *msin) {
-    const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msin;
-    set_throttle(msg->data);
+    if (!is_armed) {
+        return;
+    }
+    const std_msgs__msg__Int16 *msg = (const std_msgs__msg__Int16 *)msin;
+    int16_t speed_permil = msg->data;
+    uint16_t pulse_us = map_speed_to_pulse(speed_permil);
+    set_motor_pulse(pulse_us);
 }
 
+
+
 static void calib_callback(const void *req, void *res) {
-    if (!enabled) {
-        pwm_set_enabled(esc_slice, true);
-        enabled = true;
+    if (!is_armed) {
+        return;
     }
-    pwm_set_enabled(esc_slice, true);
-    set_pulse_width_us(ESC_MAX_PULSE);
+    set_motor_pulse(MAX_PULSE_US);
     // --> Connect power to the ESC now. Wait for the initial beeps, then wait some more.
     // sleep 10 seconds
     sleep_ms(10000);
 
-    set_pulse_width_us(ESC_MIN_PULSE);
+    set_motor_pulse(MIN_PULSE_US);
     std_srvs__srv__Trigger_Response * res_in = (std_srvs__srv__Trigger_Response *) res;
     res_in->success = true;
-    res_in->message.data = "ESC should be armed.";
+    res_in->message.data = "ESC should be armed, you can restart the ESC now.";
     res_in->message.size = strlen(res_in->message.data);
 
-    // disable PWM shortly.
-    pwm_set_enabled(esc_slice, false);
-    enabled = false;
+    sleep_ms(5000);
 }
 
 // Public hardware init function
 void esc_driver_init(uint8_t gpio_pin) {
-    gpio_set_function(gpio_pin, GPIO_FUNC_PWM);
-    esc_slice = pwm_gpio_to_slice_num(gpio_pin);
-    pwm_set_enabled(esc_slice, true);
-    // send min. pulse for at least 2 seconds in the beginning to arm the ESC.
-    set_pulse_width_us(ESC_MIN_PULSE);
-    sleep_ms(2000);
+esc_pin = gpio_pin;
+    is_armed = false;    
+    servo_driver_init(esc_pin, PWM_FREQ);
+    // Set to 0 initially for a clean power-up sequence
+    servo_driver_set_pulse_us(esc_pin, 0);
+    
+    // initiate with min. duty
+    set_motor_pulse(MIN_PULSE_US);
+    sleep_ms(2000); 
+    is_armed = true;
 }
 
 // Public ROS init function
@@ -95,7 +108,7 @@ void esc_driver_init_ros(
     rclc_subscription_init_default(
         &throttle_subscriber,
         node,
-        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+        ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int16),
         "/pico/esc/throttle_command");
     rclc_service_init_default(
         &calib_service,

@@ -19,6 +19,7 @@
 
 int main()
 {
+    stdio_init_all();
     esc_driver_init(PIN_ESC);
     pwm_driver_init(PIN_SERVO);
 

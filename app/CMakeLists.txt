@@ -15,6 +15,7 @@ add_executable(pico_micro_ros_huginn
     pico_uart_transport.c
     src/esc_driver.c
     src/pwm_driver.c
+    src/servo_driver.c
 )
 target_link_libraries(pico_micro_ros_huginn
     pico_stdlib
