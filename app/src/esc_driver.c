@@ -4,6 +4,7 @@
 #include "hardware/clocks.h"
 #include "hardware/structs/clocks.h"
 #include "pico/stdlib.h"
+#include "pico/time.h"
 
 #include <std_msgs/msg/int16.h>
 #include <std_srvs/srv/trigger.h>
@@ -15,8 +16,13 @@ const uint PWM_FREQ = 50;       // 50 Hz, standard for most ESCs
 const uint16_t MIN_PULSE_US  = 1000; // Standard minimum throttle pulse (1ms)
 const uint16_t MAX_PULSE_US  = 2000; // Standard maximum throttle pulse (2ms)
 
+const uint32_t THROTTLE_TIMEOUT_MS = 500; // 500 ms timeout
+
 static uint8_t esc_pin;
 static bool is_armed = false;
+
+static absolute_time_t last_throttle_time;
+static repeating_timer_t timeout_timer;
 
 // Private ROS objects
 static rcl_subscription_t throttle_subscriber;
@@ -26,7 +32,7 @@ static std_srvs__srv__Trigger_Request calib_req;
 static std_srvs__srv__Trigger_Response calib_res;
 
 static void set_motor_pulse(uint16_t pulse_us) {
-    // Safety: Clamp the pulse width to the allowed range
+    // clamp the pulse width to the allowed range for safety.
     if (pulse_us < MIN_PULSE_US) {
         pulse_us = MIN_PULSE_US;
     }
@@ -37,7 +43,7 @@ static void set_motor_pulse(uint16_t pulse_us) {
 }
 
 static uint16_t map_speed_to_pulse(int16_t speed_percent) {
-    // First, clamp the input to the valid 0-1000 range for safety.
+    // clamp the input to the valid 0-1000 range for safety.
     if (speed_percent < 0) {
         speed_percent = 0;
     }
@@ -48,7 +54,7 @@ static uint16_t map_speed_to_pulse(int16_t speed_percent) {
     // Calculate the pulse width range.
     uint16_t pulse_range = MAX_PULSE_US - MIN_PULSE_US;
 
-    // Map the percentage to the pulse range using integer math.
+    // Map the percentage to the pulse range
     uint16_t pulse_us = MIN_PULSE_US + (speed_percent * pulse_range) / 1000;
 
     return pulse_us;
@@ -57,6 +63,7 @@ static uint16_t map_speed_to_pulse(int16_t speed_percent) {
 
 // Private ROS Callbacks
 static void esc_throttle_callback(const void *msin) {
+    last_throttle_time = get_absolute_time();
     if (!is_armed) {
         return;
     }
@@ -66,6 +73,18 @@ static void esc_throttle_callback(const void *msin) {
     set_motor_pulse(pulse_us);
 }
 
+
+static bool check_throttle_timeout(repeating_timer_t *rt) {
+    if (!is_armed) {
+        return true;
+    }
+    absolute_time_t now = get_absolute_time();
+    int64_t diff_ms = absolute_time_diff_us(last_throttle_time, now) / 1000;
+    if (diff_ms > THROTTLE_TIMEOUT_MS) {
+        set_motor_pulse(MIN_PULSE_US);
+    }
+    return true;
+}
 
 
 static void calib_callback(const void *req, void *res) {
@@ -93,12 +112,15 @@ void esc_driver_init(uint8_t gpio_pin) {
 
     is_armed = false;    
     servo_driver_init(gpio_pin, PWM_FREQ);
-    
+
     // initiate with min. duty for 3 seconds
     set_motor_pulse(MIN_PULSE_US);
     pwm_set_enabled(slice, true);
     sleep_ms(3000);
     is_armed = true;
+
+    last_throttle_time = get_absolute_time();
+    add_repeating_timer_ms(100, check_throttle_timeout, NULL, &timeout_timer);
 }
 
 // Public ROS init function
