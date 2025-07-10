@@ -26,7 +26,8 @@ void servo_driver_init(uint8_t gpio_pin, uint_fast16_t frequency_hz) {
     pwm_config_set_clkdiv(&config, clkdiv);
     pwm_config_set_wrap(&config, wrap);
     
-    pwm_init(slice, &config, true);
+    // Enable after we set the level first
+    pwm_init(slice, &config, false);
 }
 
 void servo_driver_set_pulse_us(uint8_t gpio_pin, uint16_t pulse_width_us) {

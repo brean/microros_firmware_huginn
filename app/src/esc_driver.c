@@ -88,15 +88,16 @@ static void calib_callback(const void *req, void *res) {
 
 // Public hardware init function
 void esc_driver_init(uint8_t gpio_pin) {
-esc_pin = gpio_pin;
+    esc_pin = gpio_pin;
+    uint slice = pwm_gpio_to_slice_num(gpio_pin);
+
     is_armed = false;    
-    servo_driver_init(esc_pin, PWM_FREQ);
-    // Set to 0 initially for a clean power-up sequence
-    servo_driver_set_pulse_us(esc_pin, 0);
+    servo_driver_init(gpio_pin, PWM_FREQ);
     
-    // initiate with min. duty
+    // initiate with min. duty for 3 seconds
     set_motor_pulse(MIN_PULSE_US);
-    sleep_ms(2000); 
+    pwm_set_enabled(slice, true);
+    sleep_ms(3000);
     is_armed = true;
 }
 
