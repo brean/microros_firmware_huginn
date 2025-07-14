@@ -30,10 +30,13 @@ RUN git clone https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk.git
 # Clone setup for micro-ros/micro-ros-agent into src
 RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
 
+# Include microros-agent so we can also connect to it directly
+RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro-ROS-Agent.git
+RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_msgs.git
+
 RUN . /opt/ros/$ROS_DISTRO/setup.sh \
     && apt-get update \
-    && rosdep update \
-    && colcon build
+    && rosdep update
 
 COPY README.md ${ROS_WORKSPACE}/src/README.md
 

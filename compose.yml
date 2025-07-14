@@ -14,6 +14,8 @@ services:
       - ./app/src:/ws/micro_ros_raspberrypi_pico_sdk/src:rw
       - ./app/include:/ws/micro_ros_raspberrypi_pico_sdk/include:rw
       - ./app/:/ws/_app/:rw
+      - /dev/:/dev/:rw
     environment:
       - PYTHONUNBUFFERED=1
     command: ["/bin/sh", "-c", "sleep infinity"] 
+    privileged: true
