@@ -5,15 +5,16 @@ COPY ./docker/entrypoint.bash /entrypoint.bash
 RUN chmod +x /entrypoint.bash
 ENTRYPOINT ["/entrypoint.bash"]
 
-RUN apt-get update \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+  --mount=type=cache,target=/var/lib/apt,sharing=locked \
+  apt-get update \
     && apt-get install -y \
         build-essential \
         cmake \
         gcc-arm-none-eabi \
         libnewlib-arm-none-eabi \
         ssh \
-        git \
-    && rm -rf /var/lib/apt/lists/*
+        git
 
 
 ENV ROS_WORKSPACE=/ws
