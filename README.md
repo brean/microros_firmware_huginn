@@ -1,4 +1,4 @@
-# MicroROS firmware for huginn
+# MicroROS firmware for for RaspberryPi
 MicroROS Firmware based on FreeRTOS for RaspberryPi Pico 2 for a small robot.
 
 Based on the [MicroROS Raspberrypi Pico SDK](https://github.com/micro-ROS/micro_ros_raspberrypi_pico_sdk)
